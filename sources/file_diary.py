@@ -41,7 +41,6 @@ import pprint
 from datetime import date
 import shutil
 #import zipfile
-#import send2trash
 
 
 logging.basicConfig(level=logging.DEBUG,
@@ -66,15 +65,19 @@ def main(input_path_name:str, output_path_name:str):
 
     # get list of new files in the input directory
     list_of_files = get_list_of_files_in_directory(input_path)
+    logging.debug("found %d files in the input folder.", len(list_of_files))
 
     # create the file dictionary with datetime as keys
     file_dict = get_timestamp_based_file_dictionary(list_of_files)
+    logging.debug("files categorized according to date")
 
     # move the identified files from input to output path sorted by date
-    move_files_to_diary_path(file_dict, input_path, output_path)
+    moved_files = move_files_to_diary_path(file_dict, input_path, output_path)
+    logging.debug("number of files moved to new folder: %d", moved_files)
 
-    # create a diary file on the complete output folder and store it with date  
+    # create a diary file on the complete output folder and store it with date
     store_diary_file(file_dict, output_path)
+    logging.debug("diaries generated")
 
     return 0
 
@@ -113,7 +116,7 @@ def get_list_of_files_in_directory(directory:Path)->list:
     """
     # get all files including path in a list
     list_of_files = []
-    for (dir_path, dir_names, files) in os.walk(directory):
+    for (dir_path, _ , files) in os.walk(directory):
         list_of_files += [os.path.join(dir_path, file) for file in files]
     return list_of_files
 
@@ -142,14 +145,17 @@ def get_timestamp_based_file_dictionary(file_list:list)->dict:
                 file_dict[mod_time] = [filename]
     return file_dict
 
-def move_files_to_diary_path(file_dict:dict, input_path:Path, output_path:Path):
+def move_files_to_diary_path(file_dict:dict, input_path:Path, output_path:Path)->int:
     """Moves the files from dictionary based on datetime to output folder
 
     Args:
         file_dict (dict): datetime based file dictionary
         input_path (Path): input path
         output_path (Path): output path
+    Returns:
+        int: the number of files moved to output folder
     """
+    moved_files:int = 0
     # create date specific sub folders in output if not exist
     # Loop through each key-value pair in the dictionary
     for key, value in file_dict.items():
@@ -159,12 +165,14 @@ def move_files_to_diary_path(file_dict:dict, input_path:Path, output_path:Path):
             # check if new file already exist at destination
             if not os.path.isfile(new_file):
                 # Split the file path into directory and file name components
-                new_directory_path, file_name = os.path.split(new_file)
+                new_directory_path, _ = os.path.split(new_file)
                 # Create the destination directory if it doesn't exist
                 if not os.path.exists(new_directory_path):
                     os.makedirs(new_directory_path)
                 # move files according to sorting into correct sub folder
                 shutil.move(file, new_directory_path)
+                moved_files = moved_files + 1
+    return moved_files
 
 def store_diary_file(diary_dict:dict, output_path:Path):
     """This function controls the storing of the diary
@@ -182,13 +190,10 @@ def store_diary_file_as_python_code(diary_dict:dict, output_path:Path):
         output_path (Path): the target path for the dictionary
     """
     # generate the file path and name
-    today = date.today()
-    # dd/mm/YY
-    today_str = today.strftime("%Y%m%d")
-    python_file = os.path.join(output_path, today_str + ".py")
+    python_file = os.path.join(output_path, generate_diary_file_name() + ".py")
 
     # open the new file
-    with open(python_file, 'w') as file:
+    with open(python_file, 'w', encoding="utf-8") as file:
         # write the data to the python file using pprint pformat function
         file.write("diary = \n" + pprint.pformat(diary_dict) + '\n')
 
@@ -202,10 +207,7 @@ def store_diary_file_as_xml(diary_dict:dict, output_path:Path):
     """
 
     # generate the file path and name
-    today = date.today()
-    # dd/mm/YY
-    today_str = today.strftime("%Y%m%d")
-    xml_file = os.path.join(output_path, today_str + ".xml")
+    xml_file = os.path.join(output_path, generate_diary_file_name() + ".xml")
 
     # Create an XML element for the root node
     root = ET.Element('files')
@@ -224,8 +226,20 @@ def store_diary_file_as_xml(diary_dict:dict, output_path:Path):
     # Create an XML tree from the root element
     tree = ET.ElementTree(root)
 
-    with open(xml_file, "w") as f:
-        tree.write(f, encoding="unicode", method="xml", short_empty_elements=True)
+    with open(xml_file, "w", encoding="utf-8") as file:
+        tree.write(file, encoding="unicode", method="xml", short_empty_elements=True)
+
+def generate_diary_file_name()->str:
+    """Generates the diary file name
+
+    Returns:
+        str: file name as string
+    """
+    # datetime object containing current date and time
+    now = datetime.datetime.now()
+    # dd/mm/YY H:M:S
+    dt_string = now.strftime("%Y%m%d_%H%M%S")
+    return dt_string
 
 
 ################################################################################
@@ -236,4 +250,5 @@ def store_diary_file_as_xml(diary_dict:dict, output_path:Path):
 if __name__ == "__main__":
     # execute only if run as a script
     print('--- file_diary script ---')
-    main(os.path.join(os.getcwd(), 'test_input_folder'), os.path.join(os.getcwd(), 'test_output_folder'))
+    main(os.path.join(os.getcwd(), 'test_input_folder'),
+         os.path.join(os.getcwd(), 'test_output_folder'))
