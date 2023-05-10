@@ -38,7 +38,6 @@ import logging
 from pathlib import Path
 import xml.etree.ElementTree as ET
 import pprint
-from datetime import date
 import shutil
 #import zipfile
 
@@ -72,8 +71,17 @@ def main(input_path_name:str, output_path_name:str):
     logging.debug("files categorized according to date")
 
     # move the identified files from input to output path sorted by date
+    moved_files = 0
     moved_files = move_files_to_diary_path(file_dict, input_path, output_path)
     logging.debug("number of files moved to new folder: %d", moved_files)
+
+    # get the list of files currently in the diary folder
+    list_of_files = get_list_of_files_in_directory(output_path)
+    logging.debug("found %d files in the output folder.", len(list_of_files))
+
+    # create the file dictionary with datetime as keys
+    file_dict = get_timestamp_based_file_dictionary(list_of_files)
+    logging.debug("files categorized according to date")
 
     # create a diary file on the complete output folder and store it with date
     store_diary_file(file_dict, output_path)
@@ -250,5 +258,5 @@ def generate_diary_file_name()->str:
 if __name__ == "__main__":
     # execute only if run as a script
     print('--- file_diary script ---')
-    main(os.path.join(os.getcwd(), 'test_input_folder'),
-         os.path.join(os.getcwd(), 'test_output_folder'))
+    main(os.path.join(os.getcwd(), "C:/Users/winkste/Downloads/"),
+         os.path.join(os.getcwd(), 'C:/DIARY/'))
