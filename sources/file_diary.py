@@ -39,6 +39,7 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 import pprint
 import shutil
+import argparse
 #import zipfile
 
 
@@ -50,6 +51,32 @@ logging.basicConfig(level=logging.DEBUG,
 
 ################################################################################
 # Functions
+def handle_cli_arguments()->tuple[int, str, str]:
+    """How do we want the program to be called?
+
+    python file_diary.py -d         do just an debug test, TBD
+    python file_diary.py -s  -i "C:/Users/winkste/Downloads/" -o "C:/DIARY/"   simulate
+    python file_diary.py -e -i "C:/Users/winkste/Downloads/" -o "C:/DIARY/"        execute
+    """
+    parser = argparse.ArgumentParser(description = "Program to archive and catalogue files.")
+    parser.add_argument("input", type=str, help="input file")
+    parser.add_argument("output", type=str, help="output file")
+    args = parser.parse_args()
+
+    input_path = ""
+    output_path = ""
+
+    if args.input:
+        logging.debug("%s", args.input)
+        input_path = args.input
+
+    if args.output:
+        logging.debug("%s", args.output)
+        output_path = args.output
+
+    main(input_path, output_path)
+
+
 def main(input_path_name:str, output_path_name:str):
     """
         This is the main processing function
@@ -88,6 +115,7 @@ def main(input_path_name:str, output_path_name:str):
     logging.debug("diaries generated")
 
     return 0
+
 
 def create_file_pathes(input_path_name:str, output_path_name:str) -> Path:
     """This function creates the input and output pathes
@@ -257,6 +285,4 @@ def generate_diary_file_name()->str:
 # Scripts
 if __name__ == "__main__":
     # execute only if run as a script
-    print('--- file_diary script ---')
-    main(os.path.join(os.getcwd(), "C:/Users/winkste/Downloads/"),
-         os.path.join(os.getcwd(), 'C:/DIARY/'))
+    handle_cli_arguments()
